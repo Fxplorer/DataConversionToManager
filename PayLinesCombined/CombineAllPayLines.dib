@@ -1,0 +1,93 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!markdown
+
+Need to process the base (first) file.
+
+#!fsharp
+
+// get Fsharp.Data loaded in
+
+#r "nuget: FSharp.Data"
+open FSharp.Data
+open System.IO
+
+#!fsharp
+
+[<Literal>]
+let OriginalDataFile = __SOURCE_DIRECTORY__ + "/../OriginalDataReceived/attachment_2023-11-08.csv"
+
+
+//let originalDataDirectory = ( __SOURCE_DIRECTORY__ + Path.DirectorySeparatorChar + ".." + Path.DirectorySeparatorChar + "OriginalDataReceived" )
+
+#!fsharp
+
+let baseDirectory = __SOURCE_DIRECTORY__
+let baseDirectory' = Directory.GetParent(baseDirectory)
+let originalDataReceivedDirectory = Path.Combine(baseDirectory'.FullName, "OriginalDataReceived")
+
+let allFilesinDirectory = Directory.GetFiles(originalDataReceivedDirectory) |> Array.toList
+
+#!fsharp
+
+// This code defines a function to combine CSV files. 
+// It reads all lines from the first file and only the lines after the header from the rest of the files. 
+// It then writes all these lines to the destination file.
+
+
+// Define a function to combine files
+let combineFiles (filePaths: string list) (destination: string) =
+    // Define a helper function to read lines from a file and skip the header
+    let readLinesSkipHeader path =
+        File.ReadLines(path) // Read all lines from the file
+        |> Seq.skip 1 // Skip the first line (header)
+        |> Seq.toList // Convert the sequence to a list
+
+    // Check if the list of file paths is empty
+    match filePaths with
+    | [] -> () // If the list is empty, do nothing
+    | firstFile :: restFiles -> // If the list is not empty, split it into the first file and the rest of the files
+        let firstFileLines = File.ReadLines(firstFile) |> Seq.toList // Read all lines from the first file
+        let restFilesLines = List.collect readLinesSkipHeader restFiles // Read all lines (except headers) from the rest of the files
+        let allLines = firstFileLines @ restFilesLines // Concatenate the lines from the first file and the rest of the files
+        File.WriteAllLines(destination, allLines) // Write all lines to the destination file
+
+// Usage
+let destination = "combined.csv"
+combineFiles allFilesinDirectory destination
+
+// get full file path of combined.csv
+let combinedFile = Path.GetFullPath(destination)
+
+#!fsharp
+
+let data1 = CsvFile.Load(combinedFile, hasHeaders = true)
+            
+let data2 = 
+    data1
+        .Filter(fun row -> String.IsNullOrEmpty(row.["PAY_CODE"]))
+
+
+data2.Save("CombinedPayLines.csv")
+let combinedPayLinesFile = Path.GetFullPath("CombinedPayLines.csv")
+
+#!fsharp
+
+let uniquePayLines = 
+    unUniquePayLines.Rows
+        |> Seq.distinct
+        |> Seq.map (fun row -> 
+            headers.Split(',')
+            |> Seq.map (fun header -> "\"" + row.[header.Trim()] + "\"")
+            |> Seq.toList
+            |> String.concat ",")
+
+let csvString =
+    "\"" + headers.Replace(",", "\",\"") + "\"" + "\n" +
+    (uniquePayLines
+        |> Seq.toList
+        |> String.concat "\n")
+
+System.IO.File.WriteAllText("UniquePayLines.csv", csvString)
