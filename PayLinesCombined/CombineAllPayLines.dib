@@ -19,9 +19,6 @@ open System.IO
 [<Literal>]
 let OriginalDataFile = __SOURCE_DIRECTORY__ + "/../OriginalDataReceived/attachment_2023-11-08.csv"
 
-
-//let originalDataDirectory = ( __SOURCE_DIRECTORY__ + Path.DirectorySeparatorChar + ".." + Path.DirectorySeparatorChar + "OriginalDataReceived" )
-
 #!fsharp
 
 let baseDirectory = __SOURCE_DIRECTORY__
@@ -72,22 +69,3 @@ let data2 =
 
 data2.Save("CombinedPayLines.csv")
 let combinedPayLinesFile = Path.GetFullPath("CombinedPayLines.csv")
-
-#!fsharp
-
-let uniquePayLines = 
-    unUniquePayLines.Rows
-        |> Seq.distinct
-        |> Seq.map (fun row -> 
-            headers.Split(',')
-            |> Seq.map (fun header -> "\"" + row.[header.Trim()] + "\"")
-            |> Seq.toList
-            |> String.concat ",")
-
-let csvString =
-    "\"" + headers.Replace(",", "\",\"") + "\"" + "\n" +
-    (uniquePayLines
-        |> Seq.toList
-        |> String.concat "\n")
-
-System.IO.File.WriteAllText("UniquePayLines.csv", csvString)

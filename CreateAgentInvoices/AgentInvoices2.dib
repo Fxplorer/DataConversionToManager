@@ -1,0 +1,101 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!fsharp
+
+#r "nuget: FSharp.Data"
+open FSharp.Data
+
+let baseDirectory = __SOURCE_DIRECTORY__
+let baseDirectory' = Directory.GetParent(baseDirectory)
+let originalDataReceivedDirectory = Path.Combine(baseDirectory'.FullName, "PayLinesCombined")
+
+
+let notUniquePayLinesFile = Path.Combine(originalDataReceivedDirectory, "CombinedPayLines.csv")
+
+// working on creating an invoice type from the import data. 
+
+type InvoiceNumber = InvoiceNumber of string
+type InvoiceDate = InvoiceDate of DateOnly
+type Origin = Origin of string
+type Destination = Destination of string
+type LoadedMiles = LoadedMiles of int
+
+type LineItemDescription = LineItemDescription of string
+type LineItemPay = LineItemPay of decimal
+
+type LineItem = {
+    Description: LineItemDescription
+    Pay: LineItemPay
+}
+
+type AgentInvoiceWithOutLineItems = {
+    InvoiceNumber: InvoiceNumber
+    InvoiceDate: InvoiceDate
+    Origin: Origin
+    Destination: Destination
+    LoadedMiles: LoadedMiles
+}
+
+type AgentInvoice = {
+    InvoiceNumber: InvoiceNumber
+    InvoiceDate: InvoiceDate
+    Origin: Origin
+    Destination: Destination
+    LoadedMiles: LoadedMiles
+    LineItems: LineItem list
+}
+
+// use CsvProvider and set the sample type first
+
+type NotUniquePayLines = CsvProvider<"../PayLinesCombined/combined.csv">
+
+let notUniquePayLines = NotUniquePayLines.Load(notUniquePayLinesFile).Rows
+let uniquePayLines = notUniquePayLines |> Seq.distinct
+//uniquePayLines
+// create LineItem groupedBy BILL_NUMBER
+
+let lineItemsGroupedByBillNumber = 
+    uniquePayLines 
+    |> Seq.map (fun row -> (row.BILL_NUMBER, { Description = LineItemDescription row.PAY_DESCRIPTION; Pay = LineItemPay row.FB_TOTAL_CHARGES })) 
+    |> Seq.groupBy fst
+    |> Seq.map (fun (billNumber, items) -> billNumber, Seq.map snd items)
+    |> Seq.toList
+
+// create AgentInvoiceWithOutLineItems from all the uniquePayLines
+let agentInvoicesWithoutLineItems = 
+            uniquePayLines 
+            |> Seq.map (fun row ->
+                {
+                    InvoiceNumber = InvoiceNumber (row.BILL_NUMBER)
+                    InvoiceDate = InvoiceDate (DateOnly.FromDateTime(row.LEG_DATE))
+                    Origin = Origin row.LEG_TO_ZONE_DESC
+                    Destination = Destination row.LEG_FROM_ZONE_DESC
+                    LoadedMiles = LoadedMiles row.MILES
+                }
+            )
+            |> Seq.distinct
+
+
+// create AgentInvoice from AgentInvoiceWithOutLineItems and lineItemsGroupedByBillNumber
+let agentInvoices = 
+    agentInvoicesWithoutLineItems
+    |> Seq.map (fun invoice -> 
+        {
+            InvoiceNumber = invoice.InvoiceNumber
+            InvoiceDate = invoice.InvoiceDate
+            Origin = invoice.Origin
+            Destination = invoice.Destination
+            LoadedMiles = invoice.LoadedMiles
+            LineItems = 
+                lineItemsGroupedByBillNumber
+                |> Seq.filter (fun (billNumber, _) -> billNumber = ( invoice.InvoiceNumber.ToString()))
+                |> Seq.map snd
+                |> Seq.head
+                |> Seq.toList
+        }
+        )  
+    |> Seq.toList
+    
+agentInvoicesWithoutLineItems

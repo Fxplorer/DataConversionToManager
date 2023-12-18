@@ -1,0 +1,153 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!fsharp
+
+// get Fsharp.Data loaded in
+
+#r "nuget: FSharp.Data"
+open FSharp.Data
+
+#!markdown
+
+`BILL_NUMBER` Is the load number from carrier. This will be used as invoice number.
+
+`LEG_DATE` the date of the load delivery, hence the date of the invoice
+
+`LEG_FROM_ZONE_DESC` the pickup location, will call origin
+
+`LEG_TO_ZONE_DESC` the delivery location, call destination
+
+`MILES` the loaded miles for this particular load
+
+`PAY_DESCRIPTION` the line item description that makes up the load pay amount
+
+`FB_TOTAL_CHARGES` the amount being paid for this line item
+
+#!fsharp
+
+// working on creating an invoice type from the import data. 
+
+type InvoiceNumber = InvoiceNumber of string
+type InvoiceDate = InvoiceDate of DateOnly
+type Origin = Origin of string
+type Destination = Destination of string
+type LoadedMiles = LoadedMiles of int
+
+type LineItemDescription = LineItemDescription of string
+type LineItemPay = LineItemPay of decimal
+
+type LineItem = {
+    Description: LineItemDescription
+    Pay: LineItemPay
+}
+
+type AgentInvoice = {
+    InvoiceNumber: InvoiceNumber
+    InvoiceDate: InvoiceDate
+    Origin: Origin
+    Destination: Destination
+    LoadedMiles: LoadedMiles
+    LineItems: LineItem list
+}
+
+#!fsharp
+
+let baseDirectory = __SOURCE_DIRECTORY__
+let baseDirectory' = Directory.GetParent(baseDirectory)
+let originalDataReceivedDirectory = Path.Combine(baseDirectory'.FullName, "PayLinesCombined")
+
+
+let uniquePayLinesFile = Path.Combine(originalDataReceivedDirectory, "UniquePayLines.csv")
+
+#!fsharp
+
+// use CsvProvider and set the sample type first
+
+type UniquePayLines = CsvProvider<"../PayLinesCombined/UniquePayLines.csv">
+
+let uniquePayLines = UniquePayLines.Load(uniquePayLinesFile).Rows
+
+// get list of unique BILL_NUMBER from uniquePayLines
+
+let billNumbers = uniquePayLines |> Seq.map (fun payLine -> payLine.BILL_NUMBER) |> Set.ofSeq |> Set.toSeq
+
+// for each billNumbers, get the LEG_DATE from uniquePayLines and return a Seq of InvoiceNumber = billNumber * InvoiceDate = legDate
+
+type InvoiceNumDate = { InvoiceNumber: string; InvoiceDate: DateTime }
+
+let invoicesNumDate = 
+    billNumbers 
+    |> Seq.collect (fun billNumber -> 
+        uniquePayLines 
+        |> Seq.filter (fun payLine -> payLine.BILL_NUMBER = billNumber) 
+        |> Seq.map (fun payLine -> { InvoiceNumber = (string billNumber); InvoiceDate = payLine.LEG_DATE })
+        |> Seq.distinct
+        )
+
+
+// for each invoicesNumDate, get the LEG_FROM_ZONE_DESC from uniquePayLines and return a Seq of invoicesNumDate with Origin = legFromZoneDesc as another field
+
+type InvoiceNumDateOrigin = { InvoiceNumber: string; InvoiceDate: DateTime; Origin: string }
+
+let invoiceNumDateOrigin = 
+    billNumbers 
+    |> Seq.collect (fun billNumber -> 
+        uniquePayLines 
+        |> Seq.filter (fun payLine -> payLine.BILL_NUMBER = billNumber) 
+        |> Seq.map (fun payLine -> { InvoiceNumber = (string billNumber); InvoiceDate = payLine.LEG_DATE; Origin = payLine.LEG_FROM_ZONE_DESC })
+        |> Seq.distinct
+        )
+
+// for each invoiceNumDateOrigin, 
+// get the LEG_TO_ZONE_DESC from uniquePayLines and 
+// return a Seq of invoiceNumDateOrigin with Destination = LEG_TO_ZONE_DESC as another field
+
+type InvoiceNumDateOriginDest = { InvoiceNumber: string; InvoiceDate: DateTime; Origin: string; Destination: string }
+
+let invoiceNumDateOriginDest = 
+    billNumbers 
+    |> Seq.collect (fun billNumber -> 
+        uniquePayLines 
+        |> Seq.filter (fun payLine -> payLine.BILL_NUMBER = billNumber) 
+        |> Seq.map (fun payLine -> { InvoiceNumber = (string billNumber); InvoiceDate = payLine.LEG_DATE; Origin = payLine.LEG_FROM_ZONE_DESC; Destination = payLine.LEG_TO_ZONE_DESC })
+        |> Seq.distinct
+        )
+
+// for each invoiceNumDateOriginDest, 
+// get the MILES from uniquePayLines and 
+// return a Seq of InvoiceNumDateOriginDest with LoadedMiles = MILES as another field
+
+#!fsharp
+
+type InvoiceNumDateOriginDestMiles = { InvoiceNumber: string; InvoiceDate: DateTime; Origin: string; Destination: string; LoadedMiles: int }
+
+let invoiceNumDateOriginDestMiles = 
+    billNumbers 
+    |> Seq.collect (fun billNumber -> 
+        uniquePayLines 
+        |> Seq.filter (fun payLine -> payLine.BILL_NUMBER = billNumber) 
+        |> Seq.map (fun payLine -> { InvoiceNumber = (string billNumber); InvoiceDate = payLine.LEG_DATE; Origin = payLine.LEG_FROM_ZONE_DESC; Destination = payLine.LEG_TO_ZONE_DESC; LoadedMiles = payLine.MILES })
+        |> Seq.distinct
+        )
+
+#!fsharp
+
+// for each invoiceNumDateOriginDestMiles, 
+// get a List of LineItem from uniquePayLines for each row matching the InvoiceNumber with the BILL_NUMBER
+
+#!fsharp
+
+type InvoiceNumDateOriginDestMilesWithLineItemList = { InvoiceNumber: string; InvoiceDate: DateTime; Origin: string; Destination: string; LoadedMiles: int; LineItems: LineItem list }
+
+let invoiceNumDateOriginDestMiles = 
+    billNumbers 
+    |> Seq.collect (fun billNumber -> 
+        let lineItems = uniquePayLines 
+                        |> Seq.filter (fun payLine -> payLine.BILL_NUMBER = billNumber) 
+                        |> Seq.map (fun payLine -> // Transform payLine into LineItem)
+                        |> List.ofSeq
+        uniquePayLines 
+        |> Seq.filter (fun payLine -> payLine.BILL_NUMBER = billNumber) 
+        |> Seq.map (fun payLine -> { InvoiceNumber = (string billNumber); InvoiceDate = payLine.LEG_DATE; Origin = payLine.LEG_FROM_ZONE_DESC; Destination = payLine.LEG_TO_ZONE_DESC; LoadedMiles = payLine.MILES; LineItems = lineItems }))
