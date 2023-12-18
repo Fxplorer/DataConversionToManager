@@ -1,0 +1,139 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!fsharp
+
+#r "nuget: FSharp.Data"
+open FSharp.Data
+
+#!fsharp
+
+let baseDirectory = __SOURCE_DIRECTORY__
+let baseDirectory' = Directory.GetParent(baseDirectory)
+let originalDataReceivedDirectory = Path.Combine(baseDirectory'.FullName, "PayLinesCombined")
+
+
+let notUniquePayLinesFile = Path.Combine(originalDataReceivedDirectory, "CombinedPayLines.csv")
+
+#!fsharp
+
+// working on creating an invoice type from the import data. 
+
+type InvoiceNumber = InvoiceNumber of string
+type InvoiceDate = InvoiceDate of DateOnly
+type Origin = Origin of string
+type Destination = Destination of string
+type LoadedMiles = LoadedMiles of int
+
+type LineItemDescription = LineItemDescription of string
+type LineItemPay = LineItemPay of decimal
+
+type LineItem = {
+    Description: LineItemDescription
+    Pay: LineItemPay
+}
+
+type AgentInvoiceWithOutLineItems = {
+    InvoiceNumber: InvoiceNumber
+    InvoiceDate: InvoiceDate
+    Origin: Origin
+    Destination: Destination
+    LoadedMiles: LoadedMiles
+}
+
+type AgentInvoice = {
+    InvoiceNumber: InvoiceNumber
+    InvoiceDate: InvoiceDate
+    Origin: Origin
+    Destination: Destination
+    LoadedMiles: LoadedMiles
+    LineItems: LineItem list
+}
+
+#!fsharp
+
+// use CsvProvider and set the sample type first
+
+type NotUniquePayLines = CsvProvider<"../PayLinesCombined/combined.csv">
+
+let notUniquePayLines = NotUniquePayLines.Load(notUniquePayLinesFile).Rows
+let uniquePayLines = notUniquePayLines |> Seq.distinct
+
+#!markdown
+
+BILL_NUMBER is the value InvoiceNumber, LEG_DATE is the value of InvoiceDate, LEG_FROM_ZONE_DESC is the value of Origin, LEG_TO_ZONE_DESC is the value of Destination, MILES is the value of LoadedMiles and each of these duplicated on each row that should be grouped into one invoice. Each row is a LineItem associated with one of those invoices where PAY_DESCRIPTION is the value of Description and FB_TOTAL_CHARGES is the value of Pay. Create a list of AgentInvoice.
+
+#!fsharp
+
+let invoices =
+    uniquePayLines
+    |> Seq.groupBy (fun payLine -> payLine.BILL_NUMBER)
+    |> Seq.map (fun (invoiceNumber, payLines) ->
+        let firstPayLine = Seq.head payLines
+        let lineItems = 
+            payLines 
+            |> Seq.map (fun payLine -> 
+                { Description = LineItemDescription payLine.PAY_DESCRIPTION
+                  Pay = LineItemPay payLine.FB_TOTAL_CHARGES })
+            |> List.ofSeq
+        { InvoiceNumber = InvoiceNumber invoiceNumber
+          InvoiceDate = InvoiceDate (DateOnly.FromDateTime(firstPayLine.LEG_DATE))
+          Origin = Origin firstPayLine.LEG_FROM_ZONE_DESC
+          Destination = Destination firstPayLine.LEG_TO_ZONE_DESC
+          LoadedMiles = LoadedMiles firstPayLine.MILES
+          LineItems = lineItems })
+    |> List.ofSeq
+
+#!fsharp
+
+#r "nuget: FSharp.SystemTextJson"
+
+open System.Text.Json
+open System.Text.Json.Serialization
+
+open System.IO
+open FSharp.SystemTextJson
+
+let options =
+    JsonFSharpOptions.Default()
+        // Add any .WithXXX() calls here to customize the format
+        .ToJsonSerializerOptions()
+
+let invoicesJson = JsonSerializer.Serialize(invoices, options)
+File.WriteAllText("invoices.json", invoicesJson)
+
+#!fsharp
+
+// open System.IO
+// open FSharp.SystemTextJson
+
+// let options =
+//     JsonFSharpOptions.Default()
+//         // Add any .WithXXX() calls here to customize the format
+//         .ToJsonSerializerOptions()
+
+// let invoicesJson = File.ReadAllText("invoices.json")
+// let invoices = JsonSerializer.Deserialize<AgentInvoice list>(invoicesJson, options)
+
+#!fsharp
+
+// open System.IO
+// open System.Text.Json
+// open FSharp.SystemTextJson
+
+// let options =
+//     JsonFSharpOptions.Default()
+//         // Add any .WithXXX() calls here to customize the format
+//         .ToJsonSerializerOptions()
+
+// let invoicesJson = File.ReadAllText("invoices.json")
+
+// try
+//     let invoices = JsonSerializer.Deserialize<AgentInvoice list>(invoicesJson, options)
+//     // Continue processing invoices...
+// with
+// | :? JsonException as ex ->
+//     printfn "An error occurred while deserializing the JSON: %s" ex.Message
+// | :? Exception as ex ->
+//     printfn "An unexpected error occurred: %s" ex.Message

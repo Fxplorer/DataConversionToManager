@@ -144,10 +144,10 @@ type InvoiceNumDateOriginDestMilesWithLineItemList = { InvoiceNumber: string; In
 let invoiceNumDateOriginDestMiles = 
     billNumbers 
     |> Seq.collect (fun billNumber -> 
-        let lineItems = uniquePayLines 
-                        |> Seq.filter (fun payLine -> payLine.BILL_NUMBER = billNumber) 
-                        |> Seq.map (fun payLine -> // Transform payLine into LineItem)
-                        |> List.ofSeq
+                        let lineItems = uniquePayLines 
+                                        |> Seq.filter (fun payLine -> payLine.BILL_NUMBER = billNumber) 
+                                        |> Seq.map (fun payLine -> // Transform payLine into LineItem)
+                                        |> List.ofSeq
         uniquePayLines 
         |> Seq.filter (fun payLine -> payLine.BILL_NUMBER = billNumber) 
         |> Seq.map (fun payLine -> { InvoiceNumber = (string billNumber); InvoiceDate = payLine.LEG_DATE; Origin = payLine.LEG_FROM_ZONE_DESC; Destination = payLine.LEG_TO_ZONE_DESC; LoadedMiles = payLine.MILES; LineItems = lineItems }))

@@ -1,0 +1,236 @@
+[
+    {
+        "InvoiceNumber": "31858140",
+        "InvoiceDate": "2023-11-22",
+        "Origin": "BOSTON, MA",
+        "Destination": "HOUSTON, TX",
+        "LoadedMiles": 1852,
+        "LineItems": [
+            {
+                "Description": "R1-Paid by Percentage of Gross",
+                "Pay": 4896.41
+            },
+            {
+                "Description": "OO-DEADHD2 (R2-DEADHEAD DISPATCH TO PICKUP)",
+                "Pay": 15.75
+            },
+            {
+                "Description": "OO-DFUL (R3-DEADHEAD FUEL)",
+                "Pay": 8.09
+            },
+            {
+                "Description": "OO-FUEL11 (R3-REEFER FUEL SURCHARGE)",
+                "Pay": 713.76
+            },
+            {
+                "Description": "OO-TOLLS (R4-TOLLS)",
+                "Pay": 35.49
+            }
+        ]
+    },
+    {
+        "InvoiceNumber": "31860414",
+        "InvoiceDate": "2023-11-28",
+        "Origin": "HOUSTON, TX",
+        "Destination": "CHICAGO, IL",
+        "LoadedMiles": 1085,
+        "LineItems": [
+            {
+                "Description": "R1-Paid by Percentage of Gross",
+                "Pay": 2638.83
+            },
+            {
+                "Description": "OO-DFUL (R3-DEADHEAD FUEL)",
+                "Pay": 3.41
+            },
+            {
+                "Description": "OO-FUEL11 (R3-REEFER FUEL SURCHARGE)",
+                "Pay": 411.22
+            },
+            {
+                "Description": "OO-RELOCA2 (R5-EQPT RELOCATION CHARGE(2))",
+                "Pay": 94.5
+            },
+            {
+                "Description": "OO-SECURE (R5-CONTRACTOR SECURE PROGRAM)",
+                "Pay": 196.93
+            },
+            {
+                "Description": "OO-TEMPASS (R5-TEMPASSURE CHARGE)",
+                "Pay": 328.21
+            }
+        ]
+    },
+    {
+        "InvoiceNumber": "31583958A",
+        "InvoiceDate": "2021-10-20",
+        "Origin": "BEDFORD, NH",
+        "Destination": "NEW AUGUSTA, IN",
+        "LoadedMiles": 0,
+        "LineItems": [
+            {
+                "Description": "OO-DEADHD2 (R2-DEADHEAD DISPATCH TO PICKUP)",
+                "Pay": 46.5
+            },
+            {
+                "Description": "OO-DFUL (R3-DEADHEAD FUEL)",
+                "Pay": 18.41
+            }
+        ]
+    },
+    {
+        "InvoiceNumber": "31592569A",
+        "InvoiceDate": "2022-03-02",
+        "Origin": "BLOOMINGTON, IN",
+        "Destination": "BLOOMINGTON, IN",
+        "LoadedMiles": 0,
+        "LineItems": [
+            {
+                "Description": "OO-DEADHD2 (R2-DEADHEAD DISPATCH TO PICKUP)",
+                "Pay": 0.75
+            },
+            {
+                "Description": "OO-DFUL (R3-DEADHEAD FUEL)",
+                "Pay": 0.32
+            }
+        ]
+    },
+    {
+        "InvoiceNumber": "31655460A",
+        "InvoiceDate": "2022-06-08",
+        "Origin": "LOUISVILLE, KY",
+        "Destination": "PHOENIX, AZ",
+        "LoadedMiles": 0,
+        "LineItems": [
+            {
+                "Description": "OO-OTHER2 (R5-TENDER ADJUSTMENT)",
+                "Pay": 979.43
+            }
+        ]
+    },
+    {
+        "InvoiceNumber": "31685384A",
+        "InvoiceDate": "2022-06-30",
+        "Origin": "NEW YORK, NY",
+        "Destination": "LOS ANGELES, CA",
+        "LoadedMiles": 0,
+        "LineItems": [
+            {
+                "Description": "OO-DEADHD2 (R2-DEADHEAD DISPATCH TO PICKUP)",
+                "Pay": 34.2
+            },
+            {
+                "Description": "OO-DFUL (R3-DEADHEAD FUEL)",
+                "Pay": 125.66
+            }
+        ]
+    },
+    {
+        "InvoiceNumber": "31691316A",
+        "InvoiceDate": "2022-06-30",
+        "Origin": "ROCHESTER, NY",
+        "Destination": "WILMINGTON, MA",
+        "LoadedMiles": 0,
+        "LineItems": [
+            {
+                "Description": "OO-DEADHD2 (R2-DEADHEAD DISPATCH TO PICKUP)",
+                "Pay": 5.25
+            },
+            {
+                "Description": "OO-DFUL (R3-DEADHEAD FUEL)",
+                "Pay": 3.98
+            }
+        ]
+    },
+    {
+        "InvoiceNumber": "31833841",
+        "InvoiceDate": "2023-10-27",
+        "Origin": "LOUISVILLE, KY",
+        "Destination": "CINCINNATI, OH",
+        "LoadedMiles": 127,
+        "LineItems": [
+            {
+                "Description": "R1-Paid by Percentage of Gross",
+                "Pay": 465.61
+            },
+            {
+                "Description": "OO-DEADHD2 (R2-DEADHEAD DISPATCH TO PICKUP)",
+                "Pay": 9.75
+            },
+            {
+                "Description": "OO-DFUL (R3-DEADHEAD FUEL)",
+                "Pay": 5.26
+            },
+            {
+                "Description": "OO-FUEL11 (R3-REEFER FUEL SURCHARGE)",
+                "Pay": 51.35
+            }
+        ]
+    },
+    {
+        "InvoiceNumber": "31850330",
+        "InvoiceDate": "2023-10-25",
+        "Origin": "BROWNSBURG, IN",
+        "Destination": "BROOKS, KY",
+        "LoadedMiles": 145,
+        "LineItems": [
+            {
+                "Description": "R1-Paid by Percentage of Gross",
+                "Pay": 680.02
+            },
+            {
+                "Description": "OO-DEADHD2 (R2-DEADHEAD DISPATCH TO PICKUP)",
+                "Pay": 75
+            },
+            {
+                "Description": "OO-DETENT6 (R5-PICKUP DETENTION)",
+                "Pay": 24.2
+            },
+            {
+                "Description": "OO-DETENT7 (R5-RE-DELIVERY DETENTION)",
+                "Pay": 36.3
+            },
+            {
+                "Description": "OO-DFUL (R3-DEADHEAD FUEL)",
+                "Pay": 40.43
+            },
+            {
+                "Description": "OO-FUEL11 (R3-REEFER FUEL SURCHARGE)",
+                "Pay": 58.62
+            },
+            {
+                "Description": "OO-TOLLS (R4-TOLLS)",
+                "Pay": 8.63
+            }
+        ]
+    },
+    {
+        "InvoiceNumber": "31852717",
+        "InvoiceDate": "2023-10-26",
+        "Origin": "LA VERGNE, TN",
+        "Destination": "SHEPHERDSVILLE, KY",
+        "LoadedMiles": 171,
+        "LineItems": [
+            {
+                "Description": "R1-Paid by Percentage of Gross",
+                "Pay": 789.53
+            },
+            {
+                "Description": "OO-DEADHD2 (R2-DEADHEAD DISPATCH TO PICKUP)",
+                "Pay": 75
+            },
+            {
+                "Description": "OO-DFUL (R3-DEADHEAD FUEL)",
+                "Pay": 41.69
+            },
+            {
+                "Description": "OO-FUEL11 (R3-REEFER FUEL SURCHARGE)",
+                "Pay": 71.29
+            },
+            {
+                "Description": "OO-SECURE (R5-CONTRACTOR SECURE PROGRAM)",
+                "Pay": 181.5
+            }
+        ]
+    }
+]
