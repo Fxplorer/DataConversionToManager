@@ -1,0 +1,101 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!fsharp
+
+type IssueDate = IssueDate of DateOnly
+type DueDate = DueDateNet of String // Net
+type DueDateDays = DueDateDays of int  //Default of 15
+type Reference = InvoiceNumber of String
+type Customer = Customer of String // only one customer stored as GUID
+type Description = InvoiceDescription of String // set as pickup and destination
+
+type Item = Item of String // set as item GUID
+type SalesUnitPrice = SalesUnitPrice of decimal // set as item price
+type Key = Key of String // manager invoice GUID
+
+
+type ManagerInvoice = {
+    IssueDate: IssueDate
+    DueDate: DueDate
+    DueDateDays: DueDateDays
+    Reference: Reference
+    Customer: Customer
+    Description: Description
+    LinesItems: LineItem list
+    
+}
+and LineItem = {
+    Item: Item
+    SalesUnitPrice: SalesUnitPrice
+    Key: Key
+}
+
+#!fsharp
+
+#r "nuget: FSharp.Data"
+open FSharp.Data
+
+#!fsharp
+
+let baseDirectory = __SOURCE_DIRECTORY__
+let baseDirectory' = Directory.GetParent(baseDirectory)
+let importManagerInvoiceDirectory = Path.Combine(baseDirectory'.FullName, "ImportManagerInvoices")
+
+
+let managerInvoiceReference = Path.Combine(importManagerInvoiceDirectory, "ManagerInvoiceReference.csv")
+
+#!fsharp
+
+type ManagerInvoicesCsv = CsvProvider<"ManagerInvoiceReference.csv">
+
+let managerInvoicesCsv = ManagerInvoicesCsv.Load(managerInvoiceReference).Rows
+
+#!fsharp
+
+type RawCsv = CsvProvider<"ManagerInvoiceReference.csv">
+
+let rawCsv = RawCsv.Load(managerInvoiceReference)
+
+let managerInvoices =
+    rawCsv.Rows
+    |> Seq.map (fun row ->
+        let lineItems = [ for i in 0 .. row.ColumnValues.Length / 3 - 1 ->
+            let item = row.ColumnValues.[i * 3 + 0]
+            let salesUnitPrice = Decimal.Parse(row.ColumnValues.[i * 3 + 1])
+            let key = row.ColumnValues.[i * 3 + 2]
+            dict [
+                "Item", item
+                "SalesUnitPrice", salesUnitPrice
+                "Key", key
+            ]
+        ]
+        // ... map the rest of the ManagerInvoice fields ...
+        dict [
+            "LinesItems", lineItems
+            // ... add the rest of the ManagerInvoice fields ...
+        ]
+    )
+    |> Seq.toList
+
+#!fsharp
+
+// let managerInvoices = 
+//     managerInvoicesCsv
+//         |> Seq.map (fun row ->
+//             {
+//                 IssueDate = IssueDate (DateOnly.FromDateTime(row.IssueDate))
+//                 DueDate = DueDateNet "Net"
+//                 DueDateDays = DueDateDays 15
+//                 Reference = InvoiceNumber (string row.Reference)
+//                 Customer = Customer (string row.Customer)
+//                 Description = InvoiceDescription row.Description
+//                 LinesItems = row.Lines |> Seq.map (fun line ->
+//                     {
+//                         Item = line.Item
+//                         SalesUnitPrice = line.SalesUnitPrice
+//                         Key = line.Key
+//                     }) |> Seq.toList
+//             })
+//         |> Seq.toList

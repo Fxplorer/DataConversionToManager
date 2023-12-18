@@ -1,0 +1,34 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!fsharp
+
+#r "nuget: FSharp.Data"
+open FSharp.Data
+
+#!fsharp
+
+let baseDirectory = __SOURCE_DIRECTORY__
+let baseDirectory' = Directory.GetParent(baseDirectory)
+let originalDataReceivedDirectory = Path.Combine(baseDirectory'.FullName, "PayLinesCombined")
+
+
+let notUniquePayLinesFile = Path.Combine(originalDataReceivedDirectory, "CombinedPayLines.csv")
+
+#!fsharp
+
+// PAY_DESCRIPTION
+
+type NotUniquePayLines = CsvProvider<"../PayLinesCombined/combined.csv">
+
+let notUniquePayLines = NotUniquePayLines.Load(notUniquePayLinesFile).Rows
+
+#!fsharp
+
+let payDesc = NotUniquePayLines 
+    |> Seq.map (fun row -> row.PAY_DESCRIPTION)    
+    |> Seq.distinct 
+    |> Seq.toList
+
+printfn "%A" payLines
