@@ -26,9 +26,92 @@ let notUniquePayLines = NotUniquePayLines.Load(notUniquePayLinesFile).Rows
 
 #!fsharp
 
-let payDesc = NotUniquePayLines 
+let payDesc = 
+    notUniquePayLines 
     |> Seq.map (fun row -> row.PAY_DESCRIPTION)    
     |> Seq.distinct 
     |> Seq.toList
 
-printfn "%A" payLines
+printfn "%A" payDesc
+
+#!fsharp
+
+// Write to a new file
+System.IO.File.WriteAllLines("AgentDataPayDescriptions.txt", payDesc)
+
+#!fsharp
+
+type ManagerNonInventoryItemsName = ManagerNonInventoryItemsName of string
+    with
+        member this.Value = let (ManagerNonInventoryItemsName value) = this in value
+
+type WhenSold = WhenSold of string
+type Key = Key of string
+
+
+type ManagerNonInventoryItems = {
+    Name: ManagerNonInventoryItemsName
+    WhenSold : WhenSold
+    Key : Key
+}
+
+#!fsharp
+
+let managerNonInventoryItems = CsvFile.Load(__SOURCE_DIRECTORY__ + "/ManagerNonInventoryItems.csv")
+
+#!fsharp
+
+let createManagerNonInventoryItems (items: CsvFile) =
+    items.Rows
+    |> Seq.map (fun row -> { Name = ManagerNonInventoryItemsName row.["Name"]; WhenSold = WhenSold row.["WhenSold"]; Key = Key row.["Key"] })
+    |> Seq.toList
+
+let managerNonInventoryItemsList = createManagerNonInventoryItems managerNonInventoryItems
+
+#!fsharp
+
+// save to file
+
+#r "nuget: FSharp.SystemTextJson"
+
+open System.Text.Json
+open System.Text.Json.Serialization
+
+open System.IO
+open FSharp.SystemTextJson
+
+let options =
+    JsonFSharpOptions.Default()
+        // Add any .WithXXX() calls here to customize the format
+        .ToJsonSerializerOptions()
+
+let managerNonInventoryItemsListJson = JsonSerializer.Serialize(managerNonInventoryItemsList, options)
+File.WriteAllText("ManagerNonInventoryItemsList.json", managerNonInventoryItemsListJson)
+
+#!fsharp
+
+// compare payDesc with managerNonInventoryItemsList Name and produce a list of items that are not in managerNonInventoryItemsList
+
+//let payDescList = payDesc |> List.map (fun x -> Name x)
+
+let managerNames = 
+    managerNonInventoryItemsList 
+    |> List.map (fun item -> item.Name ) 
+    |> List.map (fun (ManagerNonInventoryItemsName name) -> name)
+
+
+let itemsNotInManagerList = payDesc |> List.filter (fun name -> not (List.contains name managerNames))
+
+#!markdown
+
+create a csv file where the header columns are `Name` with line values are the values in itemsNotInManagerList and 
+header column `WhenSold` is a string of `db39022d-0fdc-4f5b-b891-6d360a88122f`
+
+#!fsharp
+
+let whenSold = "db39022d-0fdc-4f5b-b891-6d360a88122f"
+let header = "Name,WhenSold"
+let lines = itemsNotInManagerList |> List.map (fun name -> $"{name},{whenSold}")
+
+let csvContent = header :: lines
+File.WriteAllLines("ManagerNonInventoryItemToPutInManager.csv", csvContent)

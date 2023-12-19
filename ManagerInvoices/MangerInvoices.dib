@@ -1,0 +1,312 @@
+#!meta
+
+{"kernelInfo":{"defaultKernelName":"csharp","items":[{"aliases":[],"name":"csharp"}]}}
+
+#!fsharp
+
+#r "nuget: FSharp.Data"
+open FSharp.Data
+
+#!fsharp
+
+// need a list of all invoices from manager
+
+let managerInvoicesCsvFile = CsvFile.Load(__SOURCE_DIRECTORY__ + "/CurrentManagerInvoices.csv")
+
+#!fsharp
+
+let currentManagerInvoiceList = 
+    managerInvoicesCsvFile.Rows
+    |> Seq.map (fun row -> row.GetColumn "Reference" )
+    |> Seq.toList
+
+#!fsharp
+
+// types 
+
+type InvoiceNumber = InvoiceNumber of string
+    with
+        member this.Value = let (InvoiceNumber value) = this in value
+
+type InvoiceDate = InvoiceDate of DateOnly
+    with
+        member this.Value = let (InvoiceDate value) = this in value
+type Origin = Origin of string
+    with
+        member this.Value = let (Origin value) = this in value
+type Destination = Destination of string
+    with
+        member this.Value = let (Destination value) = this in value
+        
+type LoadedMiles = LoadedMiles of int
+
+type LineItemDescription = LineItemDescription of string
+    with
+        member this.Value = let (LineItemDescription value) = this in value
+
+type LineItemPay = LineItemPay of decimal
+    with
+        member this.Value = let (LineItemPay value) = this in value
+
+type LineItem = {
+    Description: LineItemDescription
+    Pay: LineItemPay
+}
+
+type AgentInvoice = {
+    InvoiceNumber: InvoiceNumber
+    InvoiceDate: InvoiceDate
+    Origin: Origin
+    Destination: Destination
+    LoadedMiles: LoadedMiles
+    LineItems: LineItem list
+}
+
+#!fsharp
+
+// json processing 
+
+#r "nuget: FSharp.SystemTextJson"
+
+open System.Text.Json
+open System.Text.Json.Serialization
+
+open System.IO
+open FSharp.SystemTextJson
+
+let options =
+    JsonFSharpOptions.Default()
+        // Add any .WithXXX() calls here to customize the format
+        .ToJsonSerializerOptions()
+
+#!fsharp
+
+// get all AgentInvoices
+
+let agentInvoicesFile = __SOURCE_DIRECTORY__ + "/../CreateAgentInvoices/AgentInvoices.json"
+
+let agentInvoicesJson = File.ReadAllText(agentInvoicesFile)
+let agentInvoices = JsonSerializer.Deserialize<AgentInvoice list>(agentInvoicesJson, options)
+
+#!fsharp
+
+type ManagerNonInventoryItemsName = ManagerNonInventoryItemsName of string
+    with
+        member this.Value = let (ManagerNonInventoryItemsName value) = this in value
+
+type WhenSold = WhenSold of string
+
+
+type Key = Key of string
+    with
+        member this.Value = let (Key value) = this in value
+
+type ManagerNonInventoryItems = {
+    Name: ManagerNonInventoryItemsName
+    WhenSold : WhenSold
+    Key : Key
+}
+
+#!fsharp
+
+// get the ManagerNonInventoryItems
+let managerNonInventoryItemsFile = __SOURCE_DIRECTORY__ + "/../MapsOfLineItemDetails/ManagerNonInventoryItemsList.json"
+
+let managerNonInventoryItemsJson = File.ReadAllText(managerNonInventoryItemsFile)
+let managerNonInventoryItems = JsonSerializer.Deserialize<ManagerNonInventoryItems list>(managerNonInventoryItemsJson, options)
+
+#!markdown
+
+given agentInvoices is a list of AgentInvoices, I want to filter any AgentInvoices by matching the InvoiceNumber column with any value in currentManagerInvoiceList and return the list
+
+#!fsharp
+
+// Assuming agentInvoices is a list of AgentInvoice records
+// and each AgentInvoice has a field 'InvoiceNumber' of type InvoiceNumber
+// and currentManagerInvoiceList is a list of strings
+
+// let filteredAgentInvoices = 
+//     agentInvoices 
+//         |> List.filter (fun invoice -> List.contains (invoice.InvoiceNumber.Value) currentManagerInvoiceList)
+
+let filteredAgentInvoices = 
+    agentInvoices 
+    |> List.filter (fun invoice -> 
+        match invoice.InvoiceNumber with
+        | InvoiceNumber value -> not (List.contains value currentManagerInvoiceList) )    
+
+
+let filteredAgentInvoicesJson = JsonSerializer.Serialize(filteredAgentInvoices, options)
+File.WriteAllText("FilteredAgentInvoices.json", filteredAgentInvoicesJson)
+
+#!fsharp
+
+// prep for writing csv to Manager
+
+// get max number of line items in any AgentInvoice from filteredAgentInvoices
+let maxLineItems =
+    filteredAgentInvoices
+    |> List.maxBy (fun invoice -> invoice.LineItems |> List.length)
+    // get the number of line items
+    |> (fun invoice -> invoice.LineItems |> List.length)
+    
+
+maxLineItems
+
+#!markdown
+
+Need to create a csv file with a header row at the top where from filteredAgentInvoices defined as a list of AgentInvoice where each row has columns
+`IssueDate` in the format of YYYY-MM-DD and is the unwraped value of InvoiceDate
+`DueDate` is the value of `Net`
+`DueDateDays` is the value of 15
+`Reference` is the unwraped value of InvoiceNumber
+`Customer` is the value of `163f82ae-04fd-430b-8c99-c125a61ac93c`
+`Description` is the combined unwraped value of `Origin` then " to " then the unwraped value of `Destination` 
+`Lines.x.Item`
+`Lines.x.SalesUnitPrice`
+where for each LineItem, columns of `Lines.x.Item` and `Lines.x.SalesUnitPrice` where x starts at 1 and ends at maxLineItems with empty values for lines that do not have as many maxLineItems Lineitems
+and where  
+`Lines.x.Item` is the unwraped value of Key from managerNonInventoryItems where the unwraped value of `Description` matches the managerNonInventoryItems unwraped value of `Name`
+and `Lines.x.SalesUnitPrice` is the unwraped value of `Pay` in the LineItem 
+
+#!markdown
+
+in f#, create a csv header string with the following columns
+"IssueDate"
+"DueDate"
+"DueDateDays"
+"Reference"
+"Customer"
+"Description"
+and then columns for for i in 1..maxLineItems extend the columns with "Lines.%d.Item" i and "Lines.%d.SalesUnitPrice" i
+
+#!fsharp
+
+// let maxLineItems = 10 // replace with your actual maxLineItems value
+
+let header = ["IssueDate"; "DueDate"; "DueDateDays"; "Reference"; "Customer"; "Description"] @ 
+             [for i in 1..maxLineItems ->                 
+                (sprintf "Lines.%d.Item" i) + "," + 
+                (sprintf "Lines.%d.SalesUnitPrice" i)
+                
+            ]
+
+let csvHeader = String.concat "," header
+
+#!fsharp
+
+// Add header
+
+let csv = 
+    [for invoice in filteredAgentInvoices do
+        let issueDate = invoice.InvoiceDate.Value.ToString("yyyy-MM-dd")
+        let dueDate = "Net"
+        let dueDateDays = "15"
+        let reference = invoice.InvoiceNumber.Value
+        let customer = "df90bec1-bd76-43dd-9646-521dd8b9a27c"
+        let description = ( "\"" + invoice.Origin.Value + " to " + invoice.Destination.Value + "\"")
+
+        let lineItems = 
+            [for i in 0..maxLineItems-1 do
+
+                if i < List.length invoice.LineItems then 
+                    let lineItem = invoice.LineItems.[i]
+                    let item = managerNonInventoryItems |> List.tryFind (fun item -> item.Name.Value = lineItem.Description.Value)
+                    match item with
+                    | Some item -> yield item.Key.Value; yield lineItem.Pay.Value.ToString()
+                    | None -> yield ","
+                else 
+                    yield ","
+                    //yield sprintf "test%i" i 
+            ]      
+
+        yield [issueDate; dueDate; dueDateDays; reference; customer; description] @ lineItems
+    ]
+
+let csvData = 
+    csvHeader + "\n" + 
+        (csv |> List.map (String.concat ",") |> String.concat "\n")
+File.WriteAllText("ImportToManagerInvoices.csv", csvData)
+
+#!fsharp
+
+// let csv = new StringBuilder()
+
+// // Add header
+// let header = ["IssueDate"; "DueDate"; "DueDateDays"; "Reference"; "Customer"; "Description"] @ 
+//              [for i in 1..maxLineItems -> sprintf "Lines.%d.Item" i; sprintf "Lines.%d.SalesUnitPrice" i]
+// csv.AppendLine(String.Join(",", header))
+
+// for invoice in filteredAgentInvoices do
+//     let issueDate = invoice.InvoiceDate.Value.ToString("yyyy-MM-dd")
+//     let dueDate = invoice.Net.ToString()
+//     let dueDateDays = "15"
+//     let reference = invoice.InvoiceNumber.Value
+//     let customer = "163f82ae-04fd-430b-8c99-c125a61ac93c"
+//     let description = invoice.Origin.Value + " to " + invoice.Destination.Value
+
+//     let lineItems = 
+//         [for i in 0..maxLineItems-1 do
+//             if i < List.length invoice.LineItems then 
+//                 let lineItem = invoice.LineItems.[i]
+//                 let item = managerNonInventoryItems |> List.tryFind (fun item -> item.Name.Value = lineItem.Description.Value)
+//                 match item with
+//                 | Some item -> yield item.Key.Value; yield lineItem.Pay.Value.ToString()
+//                 | None -> yield! ["",""]
+//             else 
+//                 yield! ["",""]
+//         ]
+
+//     let row = [issueDate; dueDate; dueDateDays; reference; customer; description] @ lineItems
+//     csv.AppendLine(String.Join(",", row))
+
+// File.WriteAllText("output.csv", csv.ToString())
+
+#!fsharp
+
+// //helper to unwrap
+// let unwrap (InvoiceNumber value) = value
+
+// let mapInvoiceToCsvRow (invoice : AgentInvoice) =
+//     //let tempInvoiceDate = invoice.InvoiceDate
+//     //let issueDate (InvoiceDate x) = x.ToString("yyyy-MM-dd")
+//     let issueDate = invoice.InvoiceDate.Value.ToString("yyyy-MM-dd")
+
+//     let dueDate = "Net"
+//     let dueDateDays = 15
+//     //let tempReference = invoice.InvoiceNumber
+//     //let reference (InvoiceNumber tempReference) = tempReference
+//     let reference = invoice.InvoiceNumber.Value
+
+//     let customer = "163f82ae-04fd-430b-8c99-c125a61ac93c"
+//     //let tempOrigin = invoice.Origin
+//     let origin (Origin x) = x
+//     //let tempDestination = invoice.Destination
+//     let destination (Destination x) = x
+//     let description = (origin invoice.Origin ) + " to " + (destination invoice.Destination)
+    
+//     let lineItemDescription (LineItemDescription x) = x
+//     let managerNonInventoryItemsNamef (ManagerNonInventoryItemsName x) = x
+
+//     let lines = 
+//         invoice.LineItems
+//         |> List.mapi (fun i lineItem -> 
+//             let item = managerNonInventoryItems |> List.tryFind (fun item -> (managerNonInventoryItemsNamef item.Name) = (lineItemDescription lineItem.Description))
+//             match item with
+//             | Some item -> (item.Key.Value, lineItem.Pay.Value)
+//             | None -> ("", 0m))
+//     issueDate, dueDate, dueDateDays, reference, customer, description, lines
+
+// let csvRows = filteredAgentInvoices |> List.map mapInvoiceToCsvRow
+
+// let csvData = 
+//     csvRows
+//     |> List.map (fun (issueDate, dueDate, dueDateDays, reference, customer, description, lines) ->
+//         let lineItemsData = 
+//             lines
+//             |> List.mapi (fun i (item, price) -> sprintf "Lines.%d.Item,Lines.%d.SalesUnitPrice" (i+1) (i+1))
+//             |> String.concat ","
+//         sprintf "%s,%s,%d,%s,%s,%s,%s" issueDate dueDate dueDateDays reference customer description lineItemsData)
+//     |> String.concat "\n"
+
+// File.WriteAllText("output.csv", csvData)

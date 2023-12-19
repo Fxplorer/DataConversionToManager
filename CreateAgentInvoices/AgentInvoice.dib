@@ -101,7 +101,7 @@ let options =
         .ToJsonSerializerOptions()
 
 let invoicesJson = JsonSerializer.Serialize(invoices, options)
-File.WriteAllText("invoices.json", invoicesJson)
+File.WriteAllText("AgentInvoices.json", invoicesJson)
 
 #!fsharp
 
